@@ -21,7 +21,7 @@ Treebase is an R package written to access trees from TreeBASE. It was written b
 `treebase` is available [here](https://github.com/ropensci/treebase) on github or you can install directly from R:
 
 ```{r installing, echo=TRUE, eval=FALSE}
-install.packages("treebase", repos="https://github.com/ropensci/treebase" )
+install.packages("treebase")
 ```
 2. Load 'treebase' library
 ```{r loading treebase, eval=TRUE}
@@ -162,6 +162,7 @@ dryad_metadata(study.id, curl = getCurlHandle())
 **study.id**    Dryad study ID
 ```{r dryad example, echo=TRUE, eval=TRUE}
 metadata <- dryad_metadata("10255/dryad.12")
+head(metadata)
 ```
 Note: Dryad is phasing out the handles used to identify older submissions, now studies are identified exclusively using DOIs. I tried this function with a newer DOI but I couldn't get it to work...
 
@@ -171,7 +172,7 @@ Note: Dryad is phasing out the handles used to identify older submissions, now s
 
 #####Commands for _cache_ _treebase_ function
 ```{r cache commands, echo=TRUE, eval=FALSE}
-cache_treebase(file=paste("treebase-"), Sys,Date(), ".rda", sep=""),
+cache_treebase(file=paste("treebase-"), Sys.Date(), ".rda", sep=""),
 pause1 = 3, pause2 = 3, attempts = 10, max_trees = Inf, only_metadata = FALSE, save = TRUE)
 ```
 Note: this can take a long time! Recommended as an overnight run :)
