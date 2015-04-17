@@ -1,0 +1,178 @@
+##Introduction treebase package in R.
+
+####Emily Woodruff  April 17, 2015
+
+-----------------------------------------
+#### What is treebase?
+
+Treebase is an R package written to access trees from TreeBASE. It was written by Carl Bottiger and Duncan Templ Lang in 2012, see their [paper](http://onlinelibrary.wiley.com/doi/10.1111/j.2041-210X.2012.00247.x/full) published in _Methods in Ecology and Evolution_.
+
+[TreeBASE](http://treebase.org/treebase-web/urlAPI.html) is an online repository of published phylogenetic trees and data.  
+
+#### Why is it useful? 
+
+- Acquire many trees at once from TreeBASE repository
+- Sort through trees in TreeBASE by keyword, author, etc.
+- Download metadata from TreeBASE or [Dryad](http://datadryad.org/), another free online data repository for published scientific and medical data, not just trees!  
+
+###Getting started with treebase
+1. `treebase` dependencies: `ape`
+
+`treebase` is available [here](https://github.com/ropensci/treebase) on github or you can install directly from R:
+
+```{r installing, echo=TRUE, eval=FALSE}
+install.packages("treebase", repos="https://github.com/ropensci/treebase" )
+```
+2. Load 'treebase' library
+```{r loading treebase, eval=TRUE}
+library(treebase)
+```
+
+###Functions within treebase
+
+###1. **search treebase**  
+
+#####Use this to search for trees and data matrices on TreeBASE
+
+#####Commands for _search_ _treebase_ function (default settings)
+```{r search commands, echo=TRUE, eval=FALSE}
+trees <- search_treebase("keyword", by="subject", returns = c("tree", "matrix"), exact_match = FALSE, max_trees = Inf, branch_lengths = FALSE, curl = getCurlHandle(), verbose = TRUE,  pause1 = 2, pause2 = 1, attempts = 3, only_metadata = FALSE) 
+```
+
+#####Key arguments for _search_ _treebase_:
+**input**   search query  
+**by**      search type:
+
+- keywords
+- author
+- subject
+- doi or ncbi accession
+- kind.tree
+- type.tree
+- ntax
+- quality
+- study
+- taxon
+
+**returns**        do you want a tree? or a character matrix?
+**exact_match**    forces exact matching, otherwise does partial match
+**max_trees**      max trees to return
+**branch_lengths** returns branch lengths too
+**only_metadata**  returns only metadata, not phylogenies
+**curl**           handles repeated calls to server
+
+
+#####To search for trees by an author
+```{r author search, echo=TRUE, eval=TRUE}
+tree <- search_treebase("Ronquist", by=c("author"), returns= c("tree"), exact_match=TRUE, max_trees = 5)[[1]]
+```
+
+Without [[1]], `tree` will refer to ALL the trees you just pulled in, not just the first tree:
+```{r author search2, echo=TRUE, eval=FALSE}
+tree <- search_treebase("Ronquist", by=c("author"), returns= c("tree"), exact_match=TRUE, max_trees = 5)
+```
+
+Note: searches may take a while, depending on your query
+
+#####Look at first 3 trees pulled in:
+```{r look at trees, echo=TRUE, eval=FALSE}
+tree[1:3]
+#Let's check out the structure of the data we pulled down from TreeBASE
+str(tree)
+```
+
+#####Let's look at the first tree now:
+```{r plot first tree, echo=TRUE, eval=TRUE}
+library(ape)
+plot(tree)
+# Making it a little easier to read...
+plot(tree, type="phylogram", edge.width=1.5, cex=0.5)
+```
+
+#####To gather metadata only (not phylogenies) using _search_ _trees_ function:
+```{r metadata only, echo=TRUE, eval=TRUE}
+tree.data <- search_treebase("Ronquist", by=c("author"), returns= c("tree"), exact_match=TRUE, max_trees = 2, only_metadata=TRUE)
+str(tree.data[1:2])
+## It's a list! Making it a data frame...
+tree.data2 <- do.call(rbind, lapply(tree.data, data.frame, stringsAsFactors=FALSE))
+## Looking at our new data frame
+head(tree.data2)
+```
+#####Now let's plot some of the metadata
+```{r plot metadata, echo=TRUE, eval=TRUE}
+plot(tree.data2$ntax, main="Number of taxa in each study", xlab="Study", ylab="N taxa", pch=16, col="blue")
+```
+
+This is a little bit boring.
+
+#####Let's make a barplot in ggplot
+```{r barplot, echo=TRUE, eval=TRUE}
+library(ggplot2)
+ggplot(tree.data2, aes(x=S.id, y=ntax, color=S.id)) + 
+  geom_point(size=3.5, alpha = 1, position = position_jitter())
+```
+
+#####Now let's look at a barplot of the number of taxa in each study, colored by study ID.
+#####Note there are multiple trees from the same study
+```{r geom bar, echo=TRUE, eval=TRUE}
+ggplot(tree.data2, aes(ntax, color=S.id)) + 
+  geom_bar() + 
+  geom_histogram(binwidth=0.5)
+```
+
+###2. **download metadata**
+
+#####Use this to download metadata from TreeBASE
+
+#####Commands for _download_ _metadata_ function
+```{r metadata commands, echo=TRUE, eval=FALSE}
+download_metadata(query = "", by = c("all", "until", "from"), curl = getCurlHandle())
+```
+#####Key arguments for _download_ _metadata_: 
+
+**date** yyyy-mm-dd 
+**by** return data from specified date "until", "from" or "all" 
+**curl** 
+
+#####Getting metadata for all submissions dated from 1980 until 2013:
+```{r metadata until, echo=TRUE, eval=TRUE}
+data <- download_metadata("2013-01-01", by="until")
+pubdate <- sapply(data, function(x) as.numeric(x$date))
+hist(pubdate, main="Publication Dates", xlab="Year", col="green")
+```
+
+#####Getting metadata for all submissions from 2013 to the present:
+```{r metadata from, echo=TRUE, eval=TRUE}
+data <- download_metadata("2013-01-01", by="from")
+#Note: data pulled down is a list
+pubdate <- sapply(data, function(x) as.numeric(x$date))
+hist(pubdate, main="Publication Dates", xlab="Year", col="green")
+```
+
+###3. **dryad metadata**
+
+#####Use this to download metadata from specific studies from Dryad
+
+#####Commands for _dryad_ _metadata_ function
+```{r dryad commands, echo=TRUE, eval=FALSE}
+dryad_metadata(study.id, curl = getCurlHandle())
+```
+
+#####Key arguments for _dryada_ _metadata_:
+**study.id**    Dryad study ID
+```{r dryad example, echo=TRUE, eval=TRUE}
+metadata <- dryad_metadata("10255/dryad.12")
+```
+Note: Dryad is phasing out the handles used to identify older submissions, now studies are identified exclusively using DOIs. I tried this function with a newer DOI but I couldn't get it to work...
+
+###4. **cache treebase**
+
+#####Use this to store phylogenies from TreeBASE locally
+
+#####Commands for _cache_ _treebase_ function
+```{r cache commands, echo=TRUE, eval=FALSE}
+cache_treebase(file=paste("treebase-"), Sys,Date(), ".rda", sep=""),
+pause1 = 3, pause2 = 3, attempts = 10, max_trees = Inf, only_metadata = FALSE, save = TRUE)
+```
+Note: this can take a long time! Recommended as an overnight run :)
+
